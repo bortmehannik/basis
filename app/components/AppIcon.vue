@@ -1,6 +1,15 @@
 <script setup lang="ts">
 defineProps<{
-  name: 'plus' | 'edit' | 'trash' | 'arrow-left' | 'undo' | 'redo' | 'check' | 'note'
+  name:
+    | 'plus'
+    | 'edit'
+    | 'trash'
+    | 'arrow-left'
+    | 'undo'
+    | 'redo'
+    | 'check'
+    | 'chevron-down'
+    | 'note'
   size?: number
 }>()
 </script>
@@ -38,6 +47,9 @@ defineProps<{
     </template>
     <template v-else-if="name === 'check'">
       <path d="m5 12 4 4L19 6" />
+    </template>
+    <template v-else-if="name === 'chevron-down'">
+      <path d="m7 10 5 5 5-5" />
     </template>
     <template v-else>
       <path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13h6M9 17h4" />

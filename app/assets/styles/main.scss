@@ -612,15 +612,38 @@ a {
   color: #8e8e93;
   text-decoration: line-through;
 }
-.priority-select {
+.priority-control {
+  position: relative;
   flex: none;
   width: 116px;
+  color: #777;
+}
+.priority-control__icon {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.priority-control--high {
+  color: #b7352a;
+}
+.priority-control--medium {
+  color: #9b650b;
+}
+.priority-control--low {
+  color: #2869ac;
+}
+.priority-select {
+  width: 100%;
   height: 30px;
-  padding: 0 25px 0 9px;
+  padding: 0 34px 0 11px;
   border: 1px solid #e2e2e2;
   border-radius: 7px;
   outline: none;
-  color: #777;
+  appearance: none;
+  -webkit-appearance: none;
+  color: inherit;
   background-color: #fafafa;
   font-size: 12px;
   cursor: pointer;
@@ -630,17 +653,14 @@ a {
   box-shadow: 0 0 0 3px rgba($accent, 0.08);
 }
 .priority-select--high {
-  color: #b7352a;
   border-color: rgba(220, 76, 62, 0.25);
   background-color: #fff5f4;
 }
 .priority-select--medium {
-  color: #9b650b;
   border-color: rgba(232, 155, 24, 0.3);
   background-color: #fff9ed;
 }
 .priority-select--low {
-  color: #2869ac;
   border-color: rgba(59, 130, 208, 0.25);
   background-color: #f2f7fd;
 }
@@ -980,9 +1000,15 @@ a {
   .todo-row__remove {
     opacity: 1;
   }
-  .priority-select {
+  .priority-control {
     width: 42px;
-    padding: 0 6px;
+  }
+  .priority-control__icon {
+    right: 50%;
+    transform: translate(50%, -50%);
+  }
+  .priority-select {
+    padding: 0;
     color: transparent;
   }
   .priority-select option {

@@ -36,18 +36,21 @@ defineExpose({ focus: () => input.value?.focus() })
       @blur="emit('blur')"
       @keydown.enter.prevent="emit('enter')"
     >
-    <select
-      class="priority-select"
-      :class="`priority-select--${todo.priority}`"
-      :value="todo.priority"
-      aria-label="Приоритет задачи"
-      @change="emit('priority', ($event.target as HTMLSelectElement).value as TodoPriority)"
-    >
-      <option value="high">High</option>
-      <option value="medium">Medium</option>
-      <option value="low">Low</option>
-      <option value="none">Без приоритета</option>
-    </select>
+    <div class="priority-control" :class="`priority-control--${todo.priority}`">
+      <select
+        class="priority-select"
+        :class="`priority-select--${todo.priority}`"
+        :value="todo.priority"
+        aria-label="Приоритет задачи"
+        @change="emit('priority', ($event.target as HTMLSelectElement).value as TodoPriority)"
+      >
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+        <option value="none">Без приоритета</option>
+      </select>
+      <AppIcon class="priority-control__icon" name="chevron-down" :size="16" />
+    </div>
     <button type="button" class="todo-row__remove" aria-label="Удалить задачу" @click="emit('remove')">
       <AppIcon name="trash" :size="18" />
     </button>
