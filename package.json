@@ -1,0 +1,31 @@
+{
+  "name": "notes-spa",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@10.9.3",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run test && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "1.0.3",
+    "nuxt": "4.5.2",
+    "pinia": "4.1.0",
+    "sass": "1.107.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "happy-dom": "21.0.4",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "vue-tsc": "3.3.14"
+  }
+}

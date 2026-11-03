@@ -1,0 +1,12 @@
+.git
+.nuxt
+.output
+node_modules
+coverage
+output
+.DS_Store
+*.log
+.env*
+Dockerfile*
+docker-compose*.yaml
+README.md
