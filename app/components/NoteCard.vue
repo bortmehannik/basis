@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import type { Note } from '~/types/note'
 import { formatNoteDate } from '~/utils/date'
-import { sortTodosByPriority } from '~/utils/todo'
 
 const props = defineProps<{ note: Note }>()
 const emit = defineEmits<{ delete: [note: Note] }>()
-
-const sortedTodos = computed(() => sortTodosByPriority(props.note.todos))
 
 function openCard(event: MouseEvent): void {
   const target = event.target as HTMLElement
@@ -30,9 +27,9 @@ function openCard(event: MouseEvent): void {
       </div>
       <ul v-if="note.todos.length" class="todo-preview" aria-label="Первые задачи">
         <li
-          v-for="todo in sortedTodos.slice(0, 3)"
+          v-for="todo in note.todos.slice(0, 3)"
           :key="todo.id"
-          :class="[`priority-${todo.priority}`, { 'is-complete': todo.completed }]"
+          :class="{ 'is-complete': todo.completed }"
         >
           <span class="todo-preview__check" aria-hidden="true">
             <AppIcon v-if="todo.completed" name="check" :size="12" />

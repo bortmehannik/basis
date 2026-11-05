@@ -1,20 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { STORAGE_SCHEMA_VERSION, type Note, type PersistedNotes, type TodoItem, type TodoPriority } from '~/types/note'
+import { STORAGE_SCHEMA_VERSION, type Note, type PersistedNotes, type TodoItem } from '~/types/note'
 import { cloneNote } from '~/utils/note'
 import { readLocalStorage, writeLocalStorage } from '~/utils/storage'
 
 export const NOTES_STORAGE_KEY = 'notes-app:data'
-const priorities = new Set<TodoPriority>(['high', 'medium', 'low', 'none'])
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
 const isValidDate = (value: unknown): value is string =>
   typeof value === 'string' && Number.isFinite(Date.parse(value))
-
-const isTodoPriority = (value: unknown): value is TodoPriority =>
-  typeof value === 'string' && priorities.has(value as TodoPriority)
 
 export const normalizeNote = (value: unknown): Note | null => {
   if (!isRecord(value)) return null
@@ -41,7 +36,6 @@ export const normalizeNote = (value: unknown): Note | null => {
       id: todo.id,
       text: todo.text,
       completed: todo.completed,
-      priority: isTodoPriority(todo.priority) ? todo.priority : 'none',
     })
   }
 
@@ -59,7 +53,8 @@ export const parseNotes = (raw: string | null): Note[] => {
 
   try {
     const data = JSON.parse(raw) as { version?: unknown; notes?: unknown }
-    if ((data.version !== 1 && data.version !== STORAGE_SCHEMA_VERSION) || !Array.isArray(data.notes)) return []
+    if ((data.version !== 1 && data.version !== 2 && data.version !== STORAGE_SCHEMA_VERSION)
+      || !Array.isArray(data.notes)) return []
     const notes = data.notes.map(normalizeNote).filter((note): note is Note => note !== null)
     return [...new Map(notes.map(note => [note.id, note])).values()]
   }
@@ -122,5 +117,36 @@ export const useNotesStore = defineStore('notes', () => {
     return false
   }
 
-  return { notes, sortedNotes, hydrated, storageAvailable, hydrate, replaceFromStorage, findById, save, remove }
+  function syncTodoCompletion(id: string, states: ReadonlyArray<Pick<TodoItem, 'id' | 'completed'>>): boolean {
+    const index = notes.value.findIndex(note => note.id === id)
+    const current = notes.value[index]
+    if (!current) return false
+
+    const completedById = new Map(states.map(todo => [todo.id, todo.completed]))
+    const changed = current.todos.some(todo =>
+      completedById.has(todo.id) && todo.completed !== completedById.get(todo.id))
+    if (!changed) return true
+
+    const previous = cloneNote(current)
+    current.todos = current.todos.map(todo => completedById.has(todo.id)
+      ? { ...todo, completed: completedById.get(todo.id)! }
+      : todo)
+
+    if (persist()) return true
+    notes.value[index] = previous
+    return false
+  }
+
+  return {
+    notes,
+    sortedNotes,
+    hydrated,
+    storageAvailable,
+    hydrate,
+    replaceFromStorage,
+    findById,
+    save,
+    remove,
+    syncTodoCompletion,
+  }
 })

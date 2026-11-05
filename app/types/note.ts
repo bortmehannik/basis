@@ -1,11 +1,9 @@
-export type TodoPriority = 'high' | 'medium' | 'low' | 'none'
-export const STORAGE_SCHEMA_VERSION = 2 as const
+export const STORAGE_SCHEMA_VERSION = 3 as const
 
 export interface TodoItem {
   id: string
   text: string
   completed: boolean
-  priority: TodoPriority
 }
 
 export interface Note {

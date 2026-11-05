@@ -1,10 +1,9 @@
-import type { Note, TodoItem, TodoPriority } from '~/types/note'
+import type { Note, TodoItem } from '~/types/note'
 
 export type NoteChange =
   | { type: 'set-title'; before: string; after: string }
   | { type: 'set-todo-text'; todoId: string; before: string; after: string }
   | { type: 'set-todo-completed'; todoId: string; before: boolean; after: boolean }
-  | { type: 'set-todo-priority'; todoId: string; before: TodoPriority; after: TodoPriority }
   | { type: 'add-todo'; todo: TodoItem; index: number }
   | { type: 'remove-todo'; todo: TodoItem; index: number }
 
@@ -28,11 +27,6 @@ export const applyChange = (note: Note, change: NoteChange): void => {
       if (todo) todo.completed = change.after
       return
     }
-    case 'set-todo-priority': {
-      const todo = note.todos.find(item => item.id === change.todoId)
-      if (todo) todo.priority = change.after
-      return
-    }
     case 'add-todo':
       note.todos.splice(change.index, 0, structuredClone(change.todo))
       return
@@ -50,8 +44,6 @@ export const invertChange = (change: NoteChange): NoteChange => {
     case 'set-todo-text':
       return { ...change, before: change.after, after: change.before }
     case 'set-todo-completed':
-      return { ...change, before: change.after, after: change.before }
-    case 'set-todo-priority':
       return { ...change, before: change.after, after: change.before }
     case 'add-todo':
       return { type: 'remove-todo', todo: structuredClone(change.todo), index: change.index }

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, markRaw, ref, toRaw } from 'vue'
 import { NoteHistory } from '~/domain/history/note-history'
 import { applyChange, type NoteChange } from '~/domain/history/types'
-import type { Note, TodoPriority } from '~/types/note'
+import type { Note } from '~/types/note'
 import { createId } from '~/utils/id'
 import { cloneNote } from '~/utils/note'
 
@@ -12,6 +12,11 @@ interface PendingTextChange {
 }
 
 const TEXT_COMMIT_DELAY = 700
+
+const getEditableContent = (source: Note | null): string => JSON.stringify({
+  title: source?.title ?? '',
+  todos: source?.todos.map(todo => ({ id: todo.id, text: todo.text })) ?? [],
+})
 
 export const useEditorStore = defineStore('editor', () => {
   const note = ref<Note | null>(null)
@@ -28,7 +33,7 @@ export const useEditorStore = defineStore('editor', () => {
     revision.value
     return history.canRedo
   })
-  const isDirty = computed(() => JSON.stringify(note.value) !== JSON.stringify(original.value))
+  const isDirty = computed(() => getEditableContent(note.value) !== getEditableContent(original.value))
 
   function clearPending(): void {
     for (const item of pending.values()) clearTimeout(item.timer)
@@ -128,15 +133,9 @@ export const useEditorStore = defineStore('editor', () => {
     commitAtomic({ type: 'set-todo-completed', todoId, before: todo.completed, after: !todo.completed })
   }
 
-  function setTodoPriority(todoId: string, priority: TodoPriority): void {
-    const todo = note.value?.todos.find(item => item.id === todoId)
-    if (!todo || todo.priority === priority) return
-    commitAtomic({ type: 'set-todo-priority', todoId, before: todo.priority, after: priority })
-  }
-
   function addTodo(text = ''): string | null {
     if (!note.value) return null
-    const todo = { id: createId(), text, completed: false, priority: 'none' as const }
+    const todo = { id: createId(), text, completed: false }
     commitAtomic({ type: 'add-todo', todo, index: note.value.todos.length })
     return todo.id
   }
@@ -183,7 +182,6 @@ export const useEditorStore = defineStore('editor', () => {
     finalizeText,
     finalizeAllText,
     toggleTodo,
-    setTodoPriority,
     addTodo,
     removeTodo,
     undo,

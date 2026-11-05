@@ -3,7 +3,6 @@ import { onBeforeRouteLeave } from 'vue-router'
 import type { NoteDraft } from '~/types/note'
 import { formatDraftDate } from '~/utils/date'
 import { cloneNote } from '~/utils/note'
-import { sortTodosByPriority } from '~/utils/todo'
 
 definePageMeta({ key: route => route.fullPath })
 
@@ -15,7 +14,6 @@ const editor = useEditorStore()
 const routeId = computed(() => String(route.params.id))
 const isNew = computed(() => routeId.value === 'new')
 const draftKey = computed(() => isNew.value ? 'new' : routeId.value)
-const sortedTodos = computed(() => editor.note ? sortTodosByPriority(editor.note.todos) : [])
 const initialized = ref(false)
 const notFound = ref(false)
 const recoveryOpen = ref(false)
@@ -87,7 +85,7 @@ watch(() => editor.note, () => {
 
 function persistDraft(): void {
   if (!editor.note) return
-  if (!editor.isDirty && !externallyDeleted.value) {
+  if (!editor.isDirty) {
     draftsStore.remove(draftKey.value)
     return
   }
@@ -120,13 +118,13 @@ function onGlobalKeydown(event: KeyboardEvent): void {
   if (target?.closest('input, textarea, [contenteditable="true"]')) return
 
   event.preventDefault()
-  if (event.shiftKey) editor.redo()
-  else editor.undo()
+  if (event.shiftKey) redoChange()
+  else undoChange()
 }
 
 function onBeforeUnload(event: BeforeUnloadEvent): void {
   persistDraft()
-  if (!editor.isDirty && !externallyDeleted.value) return
+  if (!editor.isDirty) return
   event.preventDefault()
 }
 
@@ -136,6 +134,35 @@ function updateTitle(value: string): void {
 
 function updateTodo(id: string, value: string): void {
   editor.updateTodoText(id, value)
+}
+
+function persistTodoCompletion(): boolean {
+  if (isNew.value || externallyDeleted.value || !editor.note) return true
+  return notesStore.syncTodoCompletion(routeId.value, editor.note.todos)
+}
+
+function toggleTodo(id: string): void {
+  editor.toggleTodo(id)
+  if (persistTodoCompletion()) return
+
+  editor.undo()
+  saveError.value = 'Не удалось сохранить статус задачи. Проверьте доступ к локальному хранилищу.'
+}
+
+function undoChange(): void {
+  editor.undo()
+  if (persistTodoCompletion()) return
+
+  editor.redo()
+  saveError.value = 'Не удалось синхронизировать статус задачи. Проверьте доступ к локальному хранилищу.'
+}
+
+function redoChange(): void {
+  editor.redo()
+  if (persistTodoCompletion()) return
+
+  editor.undo()
+  saveError.value = 'Не удалось синхронизировать статус задачи. Проверьте доступ к локальному хранилищу.'
 }
 
 async function commitNewTodo(keepFocus: boolean): Promise<void> {
@@ -189,7 +216,7 @@ async function saveNote(): Promise<void> {
 
 function requestCancel(): void {
   pendingNavigation.value = null
-  if (!editor.isDirty && !externallyDeleted.value) {
+  if (!editor.isDirty) {
     draftsStore.remove(draftKey.value)
     allowNavigation.value = true
     void navigateTo('/')
@@ -229,7 +256,7 @@ function confirmDelete(): void {
 
 onBeforeRouteLeave((to) => {
   if (allowNavigation.value) return true
-  if (!editor.isDirty && !externallyDeleted.value) {
+  if (!editor.isDirty) {
     draftsStore.remove(draftKey.value)
     return true
   }
@@ -244,10 +271,10 @@ onBeforeRouteLeave((to) => {
     <AppSidebar :note-count="notesStore.notes.length" :storage-available="storageAvailable" />
     <AppHeader compact>
       <div class="history-actions" aria-label="История изменений">
-        <AppButton size="icon" variant="ghost" :disabled="!editor.canUndo" aria-label="Отменить изменение" @click="editor.undo">
+        <AppButton size="icon" variant="ghost" :disabled="!editor.canUndo" aria-label="Отменить изменение" @click="undoChange">
           <AppIcon name="undo" :size="19" />
         </AppButton>
-        <AppButton size="icon" variant="ghost" :disabled="!editor.canRedo" aria-label="Повторить изменение" @click="editor.redo">
+        <AppButton size="icon" variant="ghost" :disabled="!editor.canRedo" aria-label="Повторить изменение" @click="redoChange">
           <AppIcon name="redo" :size="19" />
         </AppButton>
       </div>
@@ -309,15 +336,14 @@ onBeforeRouteLeave((to) => {
 
           <TransitionGroup v-if="editor.note.todos.length" name="todo-sort" tag="div" class="todo-list">
             <TodoEditorRow
-              v-for="todo in sortedTodos"
+              v-for="todo in editor.note.todos"
               :key="todo.id"
               :data-todo-id="todo.id"
               :todo="todo"
-              @toggle="editor.toggleTodo(todo.id)"
+              @toggle="toggleTodo(todo.id)"
               @update="updateTodo(todo.id, $event)"
               @blur="finalizeTodo(todo.id)"
               @enter="finalizeTodoAndFocusComposer(todo.id)"
-              @priority="editor.setTodoPriority(todo.id, $event)"
               @remove="editor.removeTodo(todo.id)"
             />
           </TransitionGroup>

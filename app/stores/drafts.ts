@@ -10,7 +10,7 @@ export const parseDrafts = (raw: string | null): Record<string, NoteDraft> => {
   if (!raw) return {}
   try {
     const parsed = JSON.parse(raw) as { version?: unknown; drafts?: unknown }
-    if ((parsed.version !== 1 && parsed.version !== STORAGE_SCHEMA_VERSION)
+    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== STORAGE_SCHEMA_VERSION)
       || !parsed.drafts
       || typeof parsed.drafts !== 'object') return {}
 

@@ -8,7 +8,7 @@ import type { Note } from '../app/types/note'
 const makeNote = (): Note => ({
   id: 'note-1',
   title: 'Исходный заголовок',
-  todos: [{ id: 'todo-1', text: 'Первая задача', completed: false, priority: 'none' }],
+  todos: [{ id: 'todo-1', text: 'Первая задача', completed: false }],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 })
@@ -55,7 +55,7 @@ describe('NoteHistory', () => {
 
   it('корректно восстанавливает удалённую задачу на прежней позиции', () => {
     const note = makeNote()
-    note.todos.push({ id: 'todo-2', text: 'Вторая задача', completed: false, priority: 'high' })
+    note.todos.push({ id: 'todo-2', text: 'Вторая задача', completed: false })
     const history = new NoteHistory()
     const removed = structuredClone(note.todos[0]!)
     const change = { type: 'remove-todo', todo: removed, index: 0 } as const
@@ -66,23 +66,46 @@ describe('NoteHistory', () => {
     expect(note.todos.map(todo => todo.id)).toEqual(['todo-1', 'todo-2'])
   })
 
-  it('отменяет изменение приоритета как отдельную операцию', () => {
-    const note = makeNote()
-    const history = new NoteHistory()
-    const change = { type: 'set-todo-priority', todoId: 'todo-1', before: 'none', after: 'high' } as const
-    applyChange(note, change)
-    history.record(change)
-
-    expect(note.todos[0]?.priority).toBe('high')
-    history.undo(note)
-    expect(note.todos[0]?.priority).toBe('none')
-  })
 })
 
 describe('editor text history semantics', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     setActivePinia(createPinia())
+  })
+
+  it('не считает открытую без изменений заметку изменённой', () => {
+    const editor = useEditorStore()
+    const saved = makeNote()
+
+    editor.start(saved)
+
+    expect(editor.isDirty).toBe(false)
+    expect(editor.canUndo).toBe(false)
+    expect(editor.canRedo).toBe(false)
+  })
+
+  it('не считает смену статуса задачи редактированием содержимого', () => {
+    const editor = useEditorStore()
+    editor.start(makeNote())
+
+    editor.toggleTodo('todo-1')
+
+    expect(editor.note?.todos[0]?.completed).toBe(true)
+    expect(editor.isDirty).toBe(false)
+    expect(editor.canUndo).toBe(true)
+  })
+
+  it('считает изменением текст и количество задач', () => {
+    const editor = useEditorStore()
+    editor.start(makeNote())
+
+    editor.updateTodoText('todo-1', 'Изменённая задача')
+    expect(editor.isDirty).toBe(true)
+
+    editor.start(makeNote())
+    editor.addTodo('Новая задача')
+    expect(editor.isDirty).toBe(true)
   })
 
   it('объединяет непрерывный ввод в одну запись после паузы', () => {

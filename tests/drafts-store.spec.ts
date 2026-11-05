@@ -29,14 +29,14 @@ describe('drafts store', () => {
     store.save('draft-note', draft)
 
     const raw = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY)!)
-    expect(raw.version).toBe(2)
+    expect(raw.version).toBe(3)
     expect(raw.drafts['draft-note']).toEqual(draft)
     expect(parseDrafts(JSON.stringify(raw))).toEqual({ 'draft-note': draft })
   })
 
   it('возвращает безопасное пустое состояние для повреждённых данных', () => {
     expect(parseDrafts('{broken')).toEqual({})
-    expect(parseDrafts(JSON.stringify({ version: 3, drafts: { note: draft } }))).toEqual({})
+    expect(parseDrafts(JSON.stringify({ version: 4, drafts: { note: draft } }))).toEqual({})
   })
 
   it('отбрасывает черновики с некорректной датой или sourceId', () => {

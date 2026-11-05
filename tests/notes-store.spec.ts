@@ -6,7 +6,7 @@ import type { Note } from '../app/types/note'
 const note: Note = {
   id: 'one',
   title: 'Тест',
-  todos: [{ id: 'todo', text: 'Проверить', completed: false, priority: 'medium' }],
+  todos: [{ id: 'todo', text: 'Проверить', completed: false }],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 }
@@ -24,12 +24,12 @@ describe('notes store', () => {
 
     store.save(note)
     const raw = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)!)
-    expect(raw.version).toBe(2)
+    expect(raw.version).toBe(3)
     expect(raw.notes).toEqual([note])
   })
 
   it('восстанавливает заметки после перезагрузки стора', () => {
-    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify({ version: 2, notes: [note] }))
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify({ version: 3, notes: [note] }))
     const store = useNotesStore()
     store.hydrate()
     expect(store.findById('one')).toEqual(note)
@@ -37,22 +37,25 @@ describe('notes store', () => {
 
   it('безопасно обрабатывает повреждённые и неизвестные данные', () => {
     expect(parseNotes('{broken')).toEqual([])
-    expect(parseNotes(JSON.stringify({ version: 3, notes: [note] }))).toEqual([])
+    expect(parseNotes(JSON.stringify({ version: 4, notes: [note] }))).toEqual([])
     expect(parseNotes(JSON.stringify({ version: 1, notes: [{ id: 10 }] }))).toEqual([])
-    expect(parseNotes(JSON.stringify({ version: 2, notes: [{ ...note, updatedAt: 'invalid' }] }))).toEqual([])
+    expect(parseNotes(JSON.stringify({ version: 3, notes: [{ ...note, updatedAt: 'invalid' }] }))).toEqual([])
   })
 
   it('устраняет дубликаты идентификаторов при чтении', () => {
     const newer = { ...note, title: 'Последняя версия' }
-    const parsed = parseNotes(JSON.stringify({ version: 2, notes: [note, newer] }))
+    const parsed = parseNotes(JSON.stringify({ version: 3, notes: [note, newer] }))
 
     expect(parsed).toEqual([newer])
   })
 
-  it('мигрирует задачи первой версии без приоритета', () => {
-    const legacy = { ...note, todos: [{ id: 'legacy', text: 'Старая задача', completed: false }] }
-    const parsed = parseNotes(JSON.stringify({ version: 1, notes: [legacy] }))
-    expect(parsed[0]?.todos[0]?.priority).toBe('none')
+  it('удаляет устаревший приоритет при чтении данных второй версии', () => {
+    const legacy = {
+      ...note,
+      todos: [{ id: 'legacy', text: 'Старая задача', completed: false, priority: 'high' }],
+    }
+    const parsed = parseNotes(JSON.stringify({ version: 2, notes: [legacy] }))
+    expect(parsed[0]?.todos[0]).toEqual({ id: 'legacy', text: 'Старая задача', completed: false })
   })
 
   it('удаляет заметку и синхронно обновляет хранилище', () => {
@@ -61,6 +64,18 @@ describe('notes store', () => {
     expect(store.remove('one')).toBe(true)
     expect(JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)!).notes).toEqual([])
     expect(store.remove('missing')).toBe(false)
+  })
+
+  it('точечно сохраняет статус задачи без изменения остальных данных', () => {
+    const store = useNotesStore()
+    store.save(note)
+
+    expect(store.syncTodoCompletion('one', [{ id: 'todo', completed: true }])).toBe(true)
+
+    const saved = store.findById('one')
+    expect(saved?.todos[0]).toEqual({ id: 'todo', text: 'Проверить', completed: true })
+    expect(saved?.updatedAt).toBe(note.updatedAt)
+    expect(JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)!).notes[0]).toEqual(saved)
   })
 
   it('откатывает изменение стора при ошибке записи', () => {

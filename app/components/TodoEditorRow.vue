@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TodoItem, TodoPriority } from '~/types/note'
+import type { TodoItem } from '~/types/note'
 
 const props = defineProps<{ todo: TodoItem }>()
 const emit = defineEmits<{
@@ -7,7 +7,6 @@ const emit = defineEmits<{
   update: [value: string]
   blur: []
   enter: []
-  priority: [value: TodoPriority]
   remove: []
 }>()
 
@@ -16,7 +15,7 @@ defineExpose({ focus: () => input.value?.focus() })
 </script>
 
 <template>
-  <div class="todo-row" :class="[`priority-${todo.priority}`, { 'todo-row--complete': todo.completed }]">
+  <div class="todo-row" :class="{ 'todo-row--complete': todo.completed }">
     <button
       type="button"
       class="todo-checkbox"
@@ -36,21 +35,6 @@ defineExpose({ focus: () => input.value?.focus() })
       @blur="emit('blur')"
       @keydown.enter.prevent="emit('enter')"
     >
-    <div class="priority-control" :class="`priority-control--${todo.priority}`">
-      <select
-        class="priority-select"
-        :class="`priority-select--${todo.priority}`"
-        :value="todo.priority"
-        aria-label="Приоритет задачи"
-        @change="emit('priority', ($event.target as HTMLSelectElement).value as TodoPriority)"
-      >
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-        <option value="none">Без приоритета</option>
-      </select>
-      <AppIcon class="priority-control__icon" name="chevron-down" :size="16" />
-    </div>
     <button type="button" class="todo-row__remove" aria-label="Удалить задачу" @click="emit('remove')">
       <AppIcon name="trash" :size="18" />
     </button>
